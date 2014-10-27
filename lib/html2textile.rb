@@ -11,7 +11,7 @@ require 'sgml_parser'
 
 # This class is an implementation of an SgmlParser designed to convert
 # HTML to textile.
-# 
+#
 # Example usage:
 #   parser = HTMLToTextileParser.new
 #   parser.feed(input_html)
@@ -21,20 +21,20 @@ class HTMLToTextileParser < SgmlParser
   # TDH removed span from quicktags and set p to empty string
   # removed blockquote pair
   PAIRS = { 'p' => ''}
-  QUICKTAGS = { 'b' => '*', 'strong' => '*', 
-    'i' => '_', 'em' => '_', 'cite' => '??', 's' => '-', 
+  QUICKTAGS = { 'b' => '*', 'strong' => '*',
+    'i' => '_', 'em' => '_', 'cite' => '??', 's' => '-',
     'sup' => '^', 'sub' => '~', 'code' => '@'}
-  
+
   attr_accessor :result
   attr_accessor :in_block
   attr_accessor :data_stack
   attr_accessor :a_href
   attr_accessor :in_ul
   attr_accessor :in_ol
-  
+
   @@permitted_tags = []
   @@permitted_attrs = []
-  
+
   def initialize(verbose=nil)
     @output = String.new
     self.in_block = false
@@ -42,17 +42,17 @@ class HTMLToTextileParser < SgmlParser
     self.data_stack = []
     super(verbose)
   end
-  
+
   # Normalise space in the same manner as HTML. Any substring of multiple
   # whitespace characters will be replaced with a single space char.
   def normalise_space(s)
     s.to_s.gsub(/\s+/x, ' ')
   end
-  
+
   def build_styles_ids_and_classes(attributes)
     # TDH 11/20/2013
     # Adding classes and styles screws up the plain text
-    # that we use in emails/FB/Twitter, etc. 
+    # that we use in emails/FB/Twitter, etc.
     # So we always return a blank string
     # Comment the following line if you want to start
     # including classes and styles again
@@ -61,23 +61,23 @@ class HTMLToTextileParser < SgmlParser
     idclass += attributes['class'] if attributes.has_key?('class')
     idclass += "\##{attributes['id']}" if attributes.has_key?('id')
     idclass = "(#{idclass})" if idclass != ''
-    
+
     style = attributes.has_key?('style') ? "{#{attributes['style']}}" : ""
     "#{idclass}#{style}"
   end
-  
+
   def make_block_start_pair(tag, attributes)
     attributes = attrs_to_hash(attributes)
     class_style = build_styles_ids_and_classes(attributes)
     write("#{tag}#{class_style}")
     start_capture(tag)
   end
-  
+
   def make_block_end_pair
     stop_capture_and_write
     write("\n\n")
   end
-  
+
   def make_quicktag_start_pair(tag, wrapchar, attributes)
     attributes = attrs_to_hash(attributes)
     class_style = build_styles_ids_and_classes(attributes)
@@ -89,7 +89,7 @@ class HTMLToTextileParser < SgmlParser
     stop_capture_and_write
     write([wrapchar, " "])
   end
-  
+
   def write(d)
     if d.respond_to? :lines
 	   d_a = d.lines.to_a
@@ -103,12 +103,12 @@ class HTMLToTextileParser < SgmlParser
     end
 
   end
-          
+
   def start_capture(tag)
     self.in_block = tag
     self.data_stack.push([])
   end
-  
+
   def stop_capture_and_write
     self.in_block = false
     self.write(self.data_stack.pop)
@@ -122,33 +122,33 @@ class HTMLToTextileParser < SgmlParser
     define_method "start_h#{num}" do |attributes|
       make_block_start_pair("h#{num}", attributes)
     end
-    
+
     define_method "end_h#{num}" do
       make_block_end_pair
     end
   end
 
-  
+
   PAIRS.each do |key, value|
     define_method "start_#{key}" do |attributes|
       make_block_start_pair(value, attributes)
     end
-    
+
     define_method "end_#{key}" do
       make_block_end_pair
     end
   end
-  
+
   QUICKTAGS.each do |key, value|
     define_method "start_#{key}" do |attributes|
       make_quicktag_start_pair(key, value, attributes)
     end
-    
+
     define_method "end_#{key}" do
       make_quicktag_end_pair(value)
     end
   end
-  
+
   def start_ol(attrs)
     self.in_ol = true
   end
@@ -166,14 +166,14 @@ class HTMLToTextileParser < SgmlParser
     self.in_ul = false
     write("\n")
   end
-  
+
   def start_li(attrs)
     if self.in_ol
       write("# ")
     else
       write("* ")
     end
-    
+
     start_capture("li")
   end
 
@@ -205,10 +205,8 @@ class HTMLToTextileParser < SgmlParser
   end
 
   def start_img(attrs)
-    attrs = attrs_to_hash(attrs)
-    write([" !", attrs["src"], "! "])
   end
-  
+
   def end_img
   end
 
@@ -232,7 +230,7 @@ class HTMLToTextileParser < SgmlParser
   def start_br(attrs)
     write("\n")
   end
-  
+
   def unknown_starttag(tag, attrs)
     if @@permitted_tags.include?(tag)
       write(["<", tag])
@@ -243,29 +241,29 @@ class HTMLToTextileParser < SgmlParser
       end
     end
   end
-            
+
   def unknown_endtag(tag)
     if @@permitted_tags.include?(tag)
       write(["</", tag, ">"])
     end
   end
-  
+
   # Return the textile after processing
   def to_textile
     result.join
   end
-  
+
   # UNCONVERTED PYTHON METHODS
   #
   # def handle_charref(self, tag):
   #     self._write(unichr(int(tag)))
-  #     
+  #
   # def handle_entityref(self, tag):
-  #     if self.entitydefs.has_key(tag): 
+  #     if self.entitydefs.has_key(tag):
   #         self._write(self.entitydefs[tag])
-  # 
+  #
   # def handle_starttag(self, tag, method, attrs):
   #     method(dict(attrs))
-  #     
-  
+  #
+
 end
